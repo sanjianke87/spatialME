@@ -3,7 +3,6 @@ rm(list = ls())
 
 library(stats4)
 library(plyr)
-library(ggplot2)
 library(doMC)
 
 registerDoMC(cores = 5)
@@ -36,12 +35,10 @@ fullLogLik = function(df, t1, t2, s1, s2){
       }
     }
   }
-  #print(paste(t1,t2,s1,s2,logLik))
   return(-1 * logLik)
 }
 
 computeSigma = function(df){
-  print(paste("Computing sigmas for", unique(df$variable)))
   # starting values
   d = data.frame(t1 = 0.4, t2 = 0.3, s1 = 0.7, s2 = 0.6)
   mlePhiTau = mle(fullLogLik, start = list(t1 = d$t1, t2 = d$t2, s1 = d$s1, s2 = d$s2), fixed = list(df = df))
@@ -49,7 +46,6 @@ computeSigma = function(df){
   d$t2 = abs(mlePhiTau@coef[[2]])
   d$s1 = abs(mlePhiTau@coef[[3]])
   d$s2 = abs(mlePhiTau@coef[[4]])
-  print(paste("Computation done for", unique(df$variable)))
   return(d)
 }
 
@@ -64,22 +60,4 @@ extractPeriod = function(per){
 
 sigmas$periods = sapply(sigmas$variable, extractPeriod)
 
-# plot Tau
-p = ggplot()
-p = p + geom_point(data = sigmas, aes(x  = periods, y = t1), color = "red")
-p = p + geom_point(data = sigmas, aes(x  = periods, y = t2), color = "blue")
-p = p + geom_line(data = bobData, aes(x  = per, y = tau1), color = "red")
-p = p + geom_line(data = bobData, aes(x  = per, y = tau2), color = "blue")
-p = p + scale_x_log10() + scale_y_continuous(limits = c(0,1))
-p + theme_bw(base_size = 28)
-
-# plot phi
-p = ggplot()
-p = p + geom_point(data = sigmas, aes(x  = periods, y = s1), color = "red")
-p = p + geom_point(data = sigmas, aes(x  = periods, y = s2), color = "blue")
-p = p + geom_line(data = bobData, aes(x  = per, y = phi1), color = "red")
-p = p + geom_line(data = bobData, aes(x  = per, y = phi2), color = "blue")
-p = p + scale_x_log10() + scale_y_continuous(limits = c(0,1))
-p + theme_bw(base_size = 28)
-
-save(sigmas, file = "fullLogLik.Rdata")
+save(sigmas, file = "withoutCorr.Rdata")
