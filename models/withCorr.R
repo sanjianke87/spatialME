@@ -13,6 +13,12 @@ cyResids$M = cyResids$Mag
 
 negLogLik = function(df, distMat, t1, t2, s1, s2, range){
   logLik = 0
+  t1 = abs(t1)
+  t2 = abs(t2)
+  s1 = abs(s1)
+  s2 = abs(s2)
+  range = abs(range)
+  
   eqids = unique(df$EQID)
   
   for(i in 1:length(eqids)){
