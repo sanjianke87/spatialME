@@ -25,6 +25,7 @@ negLogLik = function(df, distMat, t1, t2, s1, s2, range){
     eqid = eqids[i]
     idx = which(df$EQID == eqid)
     if(length(idx) > 4){
+      print(paste(t1,t2,s1,s2,range,eqid))
       M = unique(df$M[idx])[1]
       tau = t1 + (t2 - t1)/2.25 * (min(max(M,5),7.25) - 5)
       phi = s1 + (s2 - s1)/2.25 * (min(max(M,5),7.25) - 5)
