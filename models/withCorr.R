@@ -25,23 +25,30 @@ negLogLik = function(df, distMat, t1, t2, s1, s2, range){
     eqid = eqids[i]
     idx = which(df$EQID == eqid)
     if(length(idx) > 4){
-      print(paste(t1,t2,s1,s2,range,eqid))
       M = unique(df$M[idx])[1]
       tau = t1 + (t2 - t1)/2.25 * (min(max(M,5),7.25) - 5)
       phi = s1 + (s2 - s1)/2.25 * (min(max(M,5),7.25) - 5)
       N = length(idx)
       corrMat = exp(-3*distMat[[eqid]]/range)
-      C = corrMat*phi^2 + matrix(1, N, N) * tau^2
-      
+      C = corrMat*phi^2 + matrix(1, N, N) * tau^2 #+ matrix(runif(N*N, 0.0001, 0.0009),N,N)
       detC = det(C)
-      if(detC > 0 ){
-        Cinv = chol2inv(chol(C))
-        logLik = logLik - 0.5*log(detC) - 0.5 * t(df$resids[idx]) %*% Cinv %*% df$resids[idx]
+      if(detC > 0){
+        update = tryCatch({
+          Cinv = chol2inv(chol(C))
+          0.5*log(detC) + 0.5 * t(df$resids[idx]) %*% Cinv %*% df$resids[idx]
+        }, error = function(e){
+          print("HERE")
+          return(10000)
+        })
+        #Cinv = chol2inv(chol(C))
+        #logLik = logLik - 0.5*log(detC) - 0.5 * t(df$resids[idx]) %*% Cinv %*% df$resids[idx]
+        logLik = logLik - update
       }else{
         logLik = logLik - 10000
       }
     }
   }
+  print(paste(t1,t2,s1,s2,range,logLik))
   return(-1 * logLik)
 }
 
@@ -57,9 +64,10 @@ computeSigma = function(df, distMat){
     startRange = 22.0 + 3.7*period
   }
   # starting values
-  d = data.frame(t1 = 0.4, t2 = 0.3, s1 = 0.7, s2 = 0.6, range = startRange)
-  mlePhiTau = mle(negLogLik, start = list(t1 = d$t1, t2 = d$t2, s1 = d$s1, s2 = d$s2, range = d$range), 
-                  fixed = list(df = df, distMat = distMat))
+  d = data.frame(t1 = 0.1, t2 = 0.1, s1 = 0.1, s2 = 0.1, range = startRange)
+  mlePhiTau = mle(negLogLik, start = list(t1 = d$t1, t2 = d$t2, s1 = d$s1, s2 = d$s2), 
+                  fixed = list(df = df, distMat = distMat, range = startRange),
+                  control = list(ndeps = c(0.01,0.01,0.01,0.01)))
   d$t1 = abs(mlePhiTau@coef[[1]])
   d$t2 = abs(mlePhiTau@coef[[2]])
   d$s1 = abs(mlePhiTau@coef[[3]])
