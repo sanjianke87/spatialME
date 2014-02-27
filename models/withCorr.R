@@ -32,7 +32,7 @@ negLogLik = function(t1, t2, s1, s2, range, df, distMat){
       corrMat = exp(-3*distMat[[eqid]]/range)
       C = corrMat*phi^2 + matrix(1, N, N) * tau^2 #+ matrix(runif(N*N, 0.0001, 0.0009),N,N)
       detC = det(C)
-      if(detC > 0){
+      if(detC > 0 & is.finite(detC)){
         update = tryCatch({
           Cinv = chol2inv(chol(C))
           0.5*log(detC) + 0.5 * t(df$resids[idx]) %*% Cinv %*% df$resids[idx]
@@ -65,21 +65,15 @@ computeSigma = function(df, distMat){
   }
   # starting values
   d = data.frame(t1 = 0.3852376, t2 = 0.2417144, s1 = 0.7261465, s2 = 0.5199134, range = startRange)
-  mlePhiTau = mle(negLogLik, start = list(t1 = d$t1, t2 = d$t2, s1 = d$s1, s2 = d$s2), 
-                  fixed = list(df = df, distMat = distMat, range = startRange), method = "SANN")
-                  #control = list(ndeps = c(0.05,0.05,0.05,0.05)))
+  mlePhiTau = mle(negLogLik, start = list(t1 = d$t1, t2 = d$t2, s1 = d$s1, s2 = d$s2, range = startRange), 
+                  fixed = list(df = df, distMat = distMat), method = "SANN",
+                  control = list(parscale = c(1.0,1.0,1.0,1.0,100.0), trace = 4, REPORT = 5))
   mlePhiTau = nlm(negLogLik, c(d$t1, d$t2, d$s1, d$s2), d$range, df, distMat)
   d$t1 = abs(mlePhiTau@coef[[1]])
   d$t2 = abs(mlePhiTau@coef[[2]])
   d$s1 = abs(mlePhiTau@coef[[3]])
   d$s2 = abs(mlePhiTau@coef[[4]])
-  #d$range = abs(mlePhiTau@coef[[5]])
-  #d$t1 = abs(mlePhiTau$estimate[1])
-  #d$t2 = abs(mlePhiTau$estimate[2])
-  #d$s1 = abs(mlePhiTau$estimate[3])
-  #d$s2 = abs(mlePhiTau$estimate[4])
-  #d$range = abs(mlePhiTau$estimate[5])
-  
+  d$range = abs(mlePhiTau@coef[[5]])
   return(d)
 }
 
@@ -142,7 +136,7 @@ load("distanceMat.Rdata")
 print("Step 3: Maximum Likelihood")
 
 # Compute the phi and taus
-sigmas = ddply(.data = data, .variables = c("variable"), .fun = computeSigma, distanceMat, .parallel = TRUE)
+sigmas = ddply(.data = data, .variables = c("variable"), .fun = computeSigma, distanceMat)
 
 # Add numeric periods to the dataframe
 extractPeriod = function(per){
