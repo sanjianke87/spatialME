@@ -11,7 +11,7 @@ bobData = read.csv('./../data/tauPhiBob.csv')
 
 cyResids$M = cyResids$Mag
 
-negLogLik = function(df, distMat, t1, t2, s1, s2, range){
+negLogLik = function(t1, t2, s1, s2, range, df, distMat){
   logLik = 0
   t1 = abs(t1)
   t2 = abs(t2)
@@ -37,7 +37,7 @@ negLogLik = function(df, distMat, t1, t2, s1, s2, range){
           Cinv = chol2inv(chol(C))
           0.5*log(detC) + 0.5 * t(df$resids[idx]) %*% Cinv %*% df$resids[idx]
         }, error = function(e){
-          print("HERE")
+          #print("HERE")
           return(10000)
         })
         #Cinv = chol2inv(chol(C))
@@ -48,7 +48,7 @@ negLogLik = function(df, distMat, t1, t2, s1, s2, range){
       }
     }
   }
-  print(paste(t1,t2,s1,s2,range,logLik))
+  #print(paste(t1,t2,s1,s2,range,logLik))
   return(-1 * logLik)
 }
 
@@ -64,15 +64,22 @@ computeSigma = function(df, distMat){
     startRange = 22.0 + 3.7*period
   }
   # starting values
-  d = data.frame(t1 = 0.1, t2 = 0.1, s1 = 0.1, s2 = 0.1, range = startRange)
+  d = data.frame(t1 = 0.3852376, t2 = 0.2417144, s1 = 0.7261465, s2 = 0.5199134, range = startRange)
   mlePhiTau = mle(negLogLik, start = list(t1 = d$t1, t2 = d$t2, s1 = d$s1, s2 = d$s2), 
-                  fixed = list(df = df, distMat = distMat, range = startRange),
-                  control = list(ndeps = c(0.01,0.01,0.01,0.01)))
+                  fixed = list(df = df, distMat = distMat, range = startRange), method = "SANN")
+                  #control = list(ndeps = c(0.05,0.05,0.05,0.05)))
+  mlePhiTau = nlm(negLogLik, c(d$t1, d$t2, d$s1, d$s2), d$range, df, distMat)
   d$t1 = abs(mlePhiTau@coef[[1]])
   d$t2 = abs(mlePhiTau@coef[[2]])
   d$s1 = abs(mlePhiTau@coef[[3]])
   d$s2 = abs(mlePhiTau@coef[[4]])
-  d$range = abs(mlePhiTau@coef[[5]])
+  #d$range = abs(mlePhiTau@coef[[5]])
+  #d$t1 = abs(mlePhiTau$estimate[1])
+  #d$t2 = abs(mlePhiTau$estimate[2])
+  #d$s1 = abs(mlePhiTau$estimate[3])
+  #d$s2 = abs(mlePhiTau$estimate[4])
+  #d$range = abs(mlePhiTau$estimate[5])
+  
   return(d)
 }
 
@@ -120,18 +127,22 @@ print("Step 1: Preparing Data")
 cyResids = subset(cyResids, EQID != 176)
 
 # Only use the selected periods
-compFor = c("T0.010S")
+#compFor = c("T0.010S")
+compFor = c("T0.010S", "T0.020S", "T0.030S", "T0.040S", "T0.050S", "T0.075S",
+            "T0.100S", "T0.120S", "T0.150S", "T0.170S", "T0.200S", "T0.250S",
+            "T0.300S", "T0.400S", "T0.500S", "T0.750S", "T1.000S", "T1.500S",
+            "T2.000S", "T3.000S", "T4.000S", "T5.000S", "T7.500S", "T10.000S")
 data = subset(cyResids, variable %in% compFor)
 
 print("Step 2: Preparing Distance Matrix")
 
 latLonData = read.csv("./../data/NGAW2_latLon.csv")
-distanceMat = dlply(data, "variable", computeDistanceMat, latLonData, .parallel = TRUE)
-
+#distanceMat = dlply(data, "variable", computeDistanceMat, latLonData, .parallel = TRUE)
+load("distanceMat.Rdata")
 print("Step 3: Maximum Likelihood")
 
 # Compute the phi and taus
-sigmas = ddply(.data = data, .variables = c("variable"), .fun = computeSigma, distanceMat, .parallel = TRUE)
+sigmas = ddply(.data = data, .variables = c("variable"), .fun = computeSigma, distanceMat)
 
 # Add numeric periods to the dataframe
 extractPeriod = function(per){
