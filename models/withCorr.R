@@ -127,11 +127,11 @@ print("Step 1: Preparing Data")
 cyResids = subset(cyResids, EQID != 176)
 
 # Only use the selected periods
-#compFor = c("T0.010S")
-compFor = c("T0.010S", "T0.020S", "T0.030S", "T0.040S", "T0.050S", "T0.075S",
-            "T0.100S", "T0.120S", "T0.150S", "T0.170S", "T0.200S", "T0.250S",
-            "T0.300S", "T0.400S", "T0.500S", "T0.750S", "T1.000S", "T1.500S",
-            "T2.000S", "T3.000S", "T4.000S", "T5.000S", "T7.500S", "T10.000S")
+compFor = c("T0.010S")
+#compFor = c("T0.010S", "T0.020S", "T0.030S", "T0.040S", "T0.050S", "T0.075S",
+            #"T0.100S", "T0.120S", "T0.150S", "T0.170S", "T0.200S", "T0.250S",
+            #"T0.300S", "T0.400S", "T0.500S", "T0.750S", "T1.000S", "T1.500S",
+            #"T2.000S", "T3.000S", "T4.000S", "T5.000S", "T7.500S", "T10.000S")
 data = subset(cyResids, variable %in% compFor)
 
 print("Step 2: Preparing Distance Matrix")
