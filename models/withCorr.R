@@ -142,7 +142,7 @@ load("distanceMat.Rdata")
 print("Step 3: Maximum Likelihood")
 
 # Compute the phi and taus
-sigmas = ddply(.data = data, .variables = c("variable"), .fun = computeSigma, distanceMat)
+sigmas = ddply(.data = data, .variables = c("variable"), .fun = computeSigma, distanceMat, .parallel = TRUE)
 
 # Add numeric periods to the dataframe
 extractPeriod = function(per){
