@@ -5,19 +5,19 @@ library(stats4)
 library(plyr)
 library(doMC)
 
-registerDoMC(cores = 6)
+#registerDoMC(cores = 6)
 load('./../computeResids/briansResid.Rdata')
 bobData = read.csv('./../data/tauPhiBob.csv')
 
 cyResids$M = cyResids$Mag
 
-negLogLik = function(t1, t2, s1, s2, range, df, distMat){
+negLogLik = function(params, df, distMat){
   logLik = 0
-  t1 = abs(t1)
-  t2 = abs(t2)
-  s1 = abs(s1)
-  s2 = abs(s2)
-  range = abs(range)
+  t1 = abs(params[1])
+  t2 = abs(params[2])
+  s1 = abs(params[3])
+  s2 = abs(params[4])
+  range = abs(params[5])
   
   eqids = unique(df$EQID)
   
@@ -30,25 +30,21 @@ negLogLik = function(t1, t2, s1, s2, range, df, distMat){
       phi = s1 + (s2 - s1)/2.25 * (min(max(M,5),7.25) - 5)
       N = length(idx)
       corrMat = exp(-3*distMat[[eqid]]/range)
-      C = corrMat*phi^2 + matrix(1, N, N) * tau^2 #+ matrix(runif(N*N, 0.0001, 0.0009),N,N)
+      C = corrMat*phi^2 + matrix(1, N, N) * tau^2
       detC = det(C)
       if(detC > 0 & is.finite(detC)){
         update = tryCatch({
           Cinv = chol2inv(chol(C))
           0.5*log(detC) + 0.5 * t(df$resids[idx]) %*% Cinv %*% df$resids[idx]
         }, error = function(e){
-          #print("HERE")
           return(10000)
         })
-        #Cinv = chol2inv(chol(C))
-        #logLik = logLik - 0.5*log(detC) - 0.5 * t(df$resids[idx]) %*% Cinv %*% df$resids[idx]
         logLik = logLik - update
       }else{
         logLik = logLik - 10000
       }
     }
   }
-  #print(paste(t1,t2,s1,s2,range,logLik))
   return(-1 * logLik)
 }
 
@@ -63,17 +59,14 @@ computeSigma = function(df, distMat){
   }else{
     startRange = 22.0 + 3.7*period
   }
-  # starting values
-  d = data.frame(t1 = 0.3852376, t2 = 0.2417144, s1 = 0.7261465, s2 = 0.5199134, range = startRange)
-  mlePhiTau = mle(negLogLik, start = list(t1 = d$t1, t2 = d$t2, s1 = d$s1, s2 = d$s2, range = startRange), 
-                  fixed = list(df = df, distMat = distMat), method = "SANN",
-                  control = list(parscale = c(1.0,1.0,1.0,1.0,100.0), trace = 4, REPORT = 5))
-  #mlePhiTau = nlm(negLogLik, c(d$t1, d$t2, d$s1, d$s2), d$range, df, distMat)
-  d$t1 = abs(mlePhiTau@coef[[1]])
-  d$t2 = abs(mlePhiTau@coef[[2]])
-  d$s1 = abs(mlePhiTau@coef[[3]])
-  d$s2 = abs(mlePhiTau@coef[[4]])
-  d$range = abs(mlePhiTau@coef[[5]])
+  
+  mlePhiTau = DEoptim(fn = negLogLik, lower = c(0.05,0.05,0.1,0.1,8), upper = c(1,1,2.0,2.0,80),
+                      control = DEoptim.control(NP = 200, itermax = 1000), df, distMat)
+  d$t1 = abs(mlePhiTau$optim$bestmem[[1]])
+  d$t2 = abs(mlePhiTau$optim$bestmem[[2]])
+  d$s1 = abs(mlePhiTau$optim$bestmem[[3]])
+  d$s2 = abs(mlePhiTau$optim$bestmem[[4]])
+  d$range = abs(mlePhiTau$optim$bestmem[[5]])
   return(d)
 }
 
@@ -121,11 +114,12 @@ print("Step 1: Preparing Data")
 cyResids = subset(cyResids, EQID != 176)
 
 # Only use the selected periods
-compFor = c("T0.010S")
-#compFor = c("T0.010S", "T0.020S", "T0.030S", "T0.040S", "T0.050S", "T0.075S",
-            #"T0.100S", "T0.120S", "T0.150S", "T0.170S", "T0.200S", "T0.250S",
-            #"T0.300S", "T0.400S", "T0.500S", "T0.750S", "T1.000S", "T1.500S",
-            #"T2.000S", "T3.000S", "T4.000S", "T5.000S", "T7.500S", "T10.000S")
+#compFor = c("T0.010S")
+compFor = c("T0.010S", "T0.020S", "T0.030S", "T0.040S", "T0.050S", "T0.075S",
+            "T0.100S", "T0.120S", "T0.150S", "T0.170S", "T0.200S", "T0.250S",
+            "T0.300S", "T0.400S", "T0.500S", "T0.750S", "T1.000S", "T1.500S",
+            "T2.000S", "T3.000S", "T4.000S", "T5.000S", "T7.500S", "T10.000S")
+
 data = subset(cyResids, variable %in% compFor)
 
 print("Step 2: Preparing Distance Matrix")
@@ -145,4 +139,4 @@ extractPeriod = function(per){
 }
 sigmas$periods = sapply(sigmas$variable, extractPeriod)
 
-save(sigmas, file = "withCorr.Rdata")
+save(sigmas, file = "withCorr_DEoptim.Rdata")

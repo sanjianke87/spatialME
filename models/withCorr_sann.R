@@ -59,7 +59,8 @@ computeSigma = function(df, distMat){
   period = as.numeric(sub("S","",period))
   startRange = 1
   if(period < 1){
-    startRange = 40.7 - 15.0 * period  
+    startRange = 
+      40.7 - 15.0 * period  
   }else{
     startRange = 22.0 + 3.7*period
   }
@@ -145,4 +146,4 @@ extractPeriod = function(per){
 }
 sigmas$periods = sapply(sigmas$variable, extractPeriod)
 
-save(sigmas, file = "withCorr.Rdata")
+save(sigmas, file = "withCorr_sann.Rdata")
