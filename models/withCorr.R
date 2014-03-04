@@ -30,7 +30,7 @@ negLogLik = function(t1, t2, s1, s2, range, df, distMat){
       phi = s1 + (s2 - s1)/2.25 * (min(max(M,5),7.25) - 5)
       N = length(idx)
       corrMat = exp(-3*distMat[[eqid]]/range)
-      C = corrMat*phi^2 + matrix(1, N, N) * tau^2 #+ matrix(runif(N*N, 0.0001, 0.0009),N,N)
+      C = corrMat*phi^2 + matrix(1, N, N) * tau^2 + matrix(runif(N*N, 0.00001, 0.00009),N,N)
       detC = det(C)
       if(detC > 0 & is.finite(detC)){
         update = tryCatch({
@@ -59,21 +59,21 @@ computeSigma = function(df, distMat){
   period = as.numeric(sub("S","",period))
   startRange = 1
   if(period < 1){
-    startRange = 40.7 - 15.0 * period  
+    startRange = 8.5 + 17.2 * period  
   }else{
-    startRange = 22.0 + 3.7*period
+    startRange = 22.0 + 3.7 * period
   }
   # starting values
   d = data.frame(t1 = 0.3852376, t2 = 0.2417144, s1 = 0.7261465, s2 = 0.5199134, range = startRange)
-  mlePhiTau = mle(negLogLik, start = list(t1 = d$t1, t2 = d$t2, s1 = d$s1, s2 = d$s2, range = startRange), 
-                  fixed = list(df = df, distMat = distMat), method = "SANN",
-                  control = list(parscale = c(1.0,1.0,1.0,1.0,100.0), trace = 4, REPORT = 5))
+  mlePhiTau = mle(negLogLik, start = list(t1 = d$t1, t2 = d$t2, s1 = d$s1, s2 = d$s2), 
+                  fixed = list(df = df, distMat = distMat, range = startRange),
+                  control = list(parscale = c(1.0,1.0,1.0,1.0) ))
   #mlePhiTau = nlm(negLogLik, c(d$t1, d$t2, d$s1, d$s2), d$range, df, distMat)
   d$t1 = abs(mlePhiTau@coef[[1]])
   d$t2 = abs(mlePhiTau@coef[[2]])
   d$s1 = abs(mlePhiTau@coef[[3]])
   d$s2 = abs(mlePhiTau@coef[[4]])
-  d$range = abs(mlePhiTau@coef[[5]])
+  #d$range = abs(mlePhiTau@coef[[5]])
   return(d)
 }
 
@@ -136,8 +136,10 @@ load("distanceMat.Rdata")
 print("Step 3: Maximum Likelihood")
 
 # Compute the phi and taus
-sigmas = ddply(.data = data, .variables = c("variable"), .fun = computeSigma, distanceMat)
-
+for(i in 1:10){
+  sigmas = ddply(.data = data, .variables = c("variable"), .fun = computeSigma, distanceMat)
+  print(sigmas)
+}
 # Add numeric periods to the dataframe
 extractPeriod = function(per){
   per = sub("T","",per)
