@@ -4,6 +4,7 @@ rm(list = ls())
 library(stats4)
 library(plyr)
 library(doMC)
+library(DEoptim)
 
 #registerDoMC(cores = 6)
 load('./../computeResids/briansResid.Rdata')
