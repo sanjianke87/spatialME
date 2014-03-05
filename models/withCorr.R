@@ -137,8 +137,8 @@ data = subset(cyResids, variable %in% compFor)
 print("Step 2: Preparing Distance Matrix")
 
 latLonData = read.csv("./../data/NGAW2_latLon.csv")
-#distanceMat = dlply(data, "variable", computeDistanceMat, latLonData, .parallel = TRUE)
-load("distanceMat.Rdata")
+distanceMat = dlply(data, "variable", computeDistanceMat, latLonData, .parallel = TRUE)
+#load("distanceMat.Rdata")
 print("Step 3: Maximum Likelihood")
 
 # Compute the phi and taus
@@ -154,4 +154,5 @@ extractPeriod = function(per){
 }
 sigmas$periods = sapply(sigmas$variable, extractPeriod)
 
+save(distanceMat, file = "./distanceMat.Rdata")
 save(sigmas, file = "withCorr.Rdata")
