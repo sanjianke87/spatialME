@@ -66,6 +66,7 @@ computeSigma = function(df, distMat){
     startRange = 22.0 + 3.7 * period
   }
   idx = which(sigmas_old$periods == period)
+  print(paste(period, "," , idx))
   # starting values
   d = data.frame(t1 = sigmas_old$t1[idx], t2 = sigmas_old$t2[idx], s1 = sigmas_old$s1[idx], s2 = sigmas_old$s2[idx], range = startRange)
   mlePhiTau = mle(negLogLik, start = list(t1 = d$t1, t2 = d$t2, s1 = d$s1, s2 = d$s2), lower = c(0.1,0.1,0.1,0.1), upper = c(0.6,0.6,1.4,1.4),
@@ -143,7 +144,7 @@ print("Step 3: Maximum Likelihood")
 # Compute the phi and taus
 sigmas = list()
 for(i in 1:5){
-  sigmas[[i]] = ddply(.data = data, .variables = c("variable"), .fun = computeSigma, distanceMat, .parallel = TRUE)
+  sigmas[[i]] = ddply(.data = data, .variables = c("variable"), .fun = computeSigma, distanceMat)
 }
 print(sigmas)
 # Add numeric periods to the dataframe
