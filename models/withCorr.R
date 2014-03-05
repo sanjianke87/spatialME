@@ -144,7 +144,7 @@ print("Step 3: Maximum Likelihood")
 # Compute the phi and taus
 sigmas = list()
 for(i in 1:5){
-  sigmas[[i]] = ddply(.data = data, .variables = c("variable"), .fun = computeSigma, distanceMat)
+  sigmas[[i]] = ddply(.data = data, .variables = c("variable"), .fun = computeSigma, distanceMat, .parallel = TRUE)
 }
 print(sigmas)
 # Add numeric periods to the dataframe
