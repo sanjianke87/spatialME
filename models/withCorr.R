@@ -30,7 +30,7 @@ negLogLik = function(t1, t2, s1, s2, range, df, distMat){
       phi = s1 + (s2 - s1)/2.25 * (min(max(M,5),7.25) - 5)
       N = length(idx)
       corrMat = exp(-3*distMat[[eqid]]/range)
-      C = corrMat*phi^2 + matrix(1, N, N) * tau^2 + matrix(runif(N*N, 0.00001, 0.00009),N,N)
+      C = corrMat*phi^2 + matrix(1, N, N) * tau^2 # + matrix(runif(N*N, 0.00001, 0.00009),N,N)
       detC = det(C)
       if(detC > 0 & is.finite(detC)){
         update = tryCatch({
@@ -136,7 +136,7 @@ load("distanceMat.Rdata")
 print("Step 3: Maximum Likelihood")
 
 # Compute the phi and taus
-for(i in 1:10){
+for(i in 1:4){
   sigmas = ddply(.data = data, .variables = c("variable"), .fun = computeSigma, distanceMat)
   print(sigmas)
 }
