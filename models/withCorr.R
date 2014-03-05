@@ -146,7 +146,7 @@ print("Step 3: Maximum Likelihood")
 
 # Compute the phi and taus
 sigmas = list()
-for(i in 1:5){
+for(i in 1:100){
   sigmas[[i]] = ddply(.data = data, .variables = c("variable"), .fun = computeSigma, distanceMat)#, .parallel = TRUE)
 }
 
@@ -158,4 +158,4 @@ print(sigmas)
 #}
 #sigmas$periods = sapply(sigmas$variable, extractPeriod)
 
-save(sigmas, file = "withCorr.Rdata")
+save(sigmas, file = "withCorr50.Rdata")
