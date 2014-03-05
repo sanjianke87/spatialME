@@ -154,9 +154,5 @@ extractPeriod = function(per){
 }
 sigmas$periods = sapply(sigmas$variable, extractPeriod)
 
-<<<<<<< HEAD
-save(sigmas, file = "withCorr.Rdata")
-=======
 save(distanceMat, file = "./distanceMat.Rdata")
 save(sigmas, file = "withCorr.Rdata")
->>>>>>> bfcfc6a517fa277c8da77eaef20388638867739a
