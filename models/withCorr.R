@@ -34,7 +34,7 @@ negLogLik = function(t1, t2, s1, s2, range, df, distMat){
       phi = s1 + (s2 - s1)/2.25 * (min(max(M,5),7.25) - 5)
       N = length(idx)
       corrMat = exp(-3*distMat[[eqid]]/range)
-      print(eqid)
+      #print(eqid)
       C = corrMat*phi^2 + matrix(1, N, N) * tau^2 + matrix(runif(N*N, 1e-6, 5e-6),N,N)
       detC = det(C)
       if(detC > 0 & is.finite(detC)){
@@ -66,8 +66,9 @@ computeSigma = function(df, distMats){
     startRange = 22.0 + 3.7 * period
   }
   idx = which(sigmas_old$periods == period)
-  print(paste(per,":",period, "," , idx))
-  distMat = distMats[[per]]
+  print(per)
+  print(names(distMats))
+  distMat = distMats[[as.character(per)]]
   # starting values
   d = data.frame(t1 = sigmas_old$t1[idx], t2 = sigmas_old$t2[idx], s1 = sigmas_old$s1[idx], s2 = sigmas_old$s2[idx], range = startRange)
   mlePhiTau = mle(negLogLik, start = list(t1 = d$t1, t2 = d$t2, s1 = d$s1, s2 = d$s2), lower = c(0.05,0.05,0.05,0.05), upper = c(0.6,0.6,1.4,1.4),
