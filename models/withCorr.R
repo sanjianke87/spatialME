@@ -5,9 +5,13 @@ library(stats4)
 library(plyr)
 library(doMC)
 
-registerDoMC(cores = 6)
+registerDoMC(cores = 5)
 load('./../computeResids/briansResid.Rdata')
 bobData = read.csv('./../data/tauPhiBob.csv')
+
+load("./withoutCorr.Rdata")
+
+sigmas_old = sigmas
 
 cyResids$M = cyResids$Mag
 
@@ -30,7 +34,7 @@ negLogLik = function(t1, t2, s1, s2, range, df, distMat){
       phi = s1 + (s2 - s1)/2.25 * (min(max(M,5),7.25) - 5)
       N = length(idx)
       corrMat = exp(-3*distMat[[eqid]]/range)
-      C = corrMat*phi^2 + matrix(1, N, N) * tau^2 # + matrix(runif(N*N, 0.00001, 0.00009),N,N)
+      C = corrMat*phi^2 + matrix(1, N, N) * tau^2 + matrix(runif(N*N, 1e-6, 5e-6),N,N)
       detC = det(C)
       if(detC > 0 & is.finite(detC)){
         update = tryCatch({
@@ -40,8 +44,6 @@ negLogLik = function(t1, t2, s1, s2, range, df, distMat){
           #print("HERE")
           return(10000)
         })
-        #Cinv = chol2inv(chol(C))
-        #logLik = logLik - 0.5*log(detC) - 0.5 * t(df$resids[idx]) %*% Cinv %*% df$resids[idx]
         logLik = logLik - update
       }else{
         logLik = logLik - 10000
@@ -63,12 +65,11 @@ computeSigma = function(df, distMat){
   }else{
     startRange = 22.0 + 3.7 * period
   }
+  idx = which(sigmas_old$periods == period)
   # starting values
-  d = data.frame(t1 = 0.3852376, t2 = 0.2417144, s1 = 0.7261465, s2 = 0.5199134, range = startRange)
-  mlePhiTau = mle(negLogLik, start = list(t1 = d$t1, t2 = d$t2, s1 = d$s1, s2 = d$s2), 
-                  fixed = list(df = df, distMat = distMat, range = startRange),
-                  control = list(parscale = c(1.0,1.0,1.0,1.0) ))
-  #mlePhiTau = nlm(negLogLik, c(d$t1, d$t2, d$s1, d$s2), d$range, df, distMat)
+  d = data.frame(t1 = sigmas_old$t1[idx], t2 = sigmas_old$t2[idx], s1 = sigmas_old$s1[idx], s2 = sigmas_old$s2[idx], range = startRange)
+  mlePhiTau = mle(negLogLik, start = list(t1 = d$t1, t2 = d$t2, s1 = d$s1, s2 = d$s2), lower = c(0.1,0.1,0.1,0.1), upper = c(0.6,0.6,1.4,1.4),
+                  fixed = list(df = df, distMat = distMat, range = startRange))
   d$t1 = abs(mlePhiTau@coef[[1]])
   d$t2 = abs(mlePhiTau@coef[[2]])
   d$s1 = abs(mlePhiTau@coef[[3]])
@@ -121,11 +122,15 @@ print("Step 1: Preparing Data")
 cyResids = subset(cyResids, EQID != 176)
 
 # Only use the selected periods
-compFor = c("T0.010S")
+#compFor = c("T0.010S")
 #compFor = c("T0.010S", "T0.020S", "T0.030S", "T0.040S", "T0.050S", "T0.075S",
             #"T0.100S", "T0.120S", "T0.150S", "T0.170S", "T0.200S", "T0.250S",
             #"T0.300S", "T0.400S", "T0.500S", "T0.750S", "T1.000S", "T1.500S",
             #"T2.000S", "T3.000S", "T4.000S", "T5.000S", "T7.500S", "T10.000S")
+
+compFor = c("T0.010S", "T0.200S", "T0.500S", "T1.000S", "T2.000S")
+
+
 data = subset(cyResids, variable %in% compFor)
 
 print("Step 2: Preparing Distance Matrix")
@@ -136,10 +141,11 @@ load("distanceMat.Rdata")
 print("Step 3: Maximum Likelihood")
 
 # Compute the phi and taus
-for(i in 1:4){
-  sigmas = ddply(.data = data, .variables = c("variable"), .fun = computeSigma, distanceMat)
-  print(sigmas)
+sigmas = list()
+for(i in 1:5){
+  sigmas[[i]] = ddply(.data = data, .variables = c("variable"), .fun = computeSigma, distanceMat, .parallel = TRUE)
 }
+print(sigmas)
 # Add numeric periods to the dataframe
 extractPeriod = function(per){
   per = sub("T","",per)
