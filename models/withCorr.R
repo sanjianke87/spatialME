@@ -54,9 +54,8 @@ negLogLik = function(t1, t2, s1, s2, range, df, distMat){
   return(-1 * logLik)
 }
 
-computeSigma = function(df, distMat){
+computeSigma = function(df, distMats){
   per = unique(df$variable)[1]
-  distMat = distMat[[per]]
   period = sub("T","",per)
   period = as.numeric(sub("S","",period))
   startRange = 1
@@ -66,7 +65,8 @@ computeSigma = function(df, distMat){
     startRange = 22.0 + 3.7 * period
   }
   idx = which(sigmas_old$periods == period)
-  print(paste(period, "," , idx))
+  print(paste(per,":",period, "," , idx))
+  distMat = distMats[[per]]
   # starting values
   d = data.frame(t1 = sigmas_old$t1[idx], t2 = sigmas_old$t2[idx], s1 = sigmas_old$s1[idx], s2 = sigmas_old$s2[idx], range = startRange)
   mlePhiTau = mle(negLogLik, start = list(t1 = d$t1, t2 = d$t2, s1 = d$s1, s2 = d$s2), lower = c(0.1,0.1,0.1,0.1), upper = c(0.6,0.6,1.4,1.4),
