@@ -35,17 +35,19 @@ negLogLik = function(t1, t2, s1, s2, range, df, distMat){
       N = length(idx)
       corrMat = exp(-3*distMat[[eqid]]/range)
       #print(eqid)
-      C = corrMat*phi^2 + matrix(1, N, N) * tau^2 + matrix(runif(N*N, 1e-6, 5e-6),N,N)
+      C = corrMat*phi^2 + matrix(1, N, N) * tau^2 #+ matrix(runif(N*N, 1e-6, 5e-6),N,N)
       detC = det(C)
       if(detC > 0 & is.finite(detC)){
-        update = tryCatch({
-          Cinv = chol2inv(chol(C))
-          0.5*log(detC) + 0.5 * t(df$resids[idx]) %*% Cinv %*% df$resids[idx]
-        }, error = function(e){
-          #print("HERE")
-          return(10000)
-        })
-        logLik = logLik - update
+        Cinv = chol2inv(chol(C))
+        logLik = logLik - 0.5*log(detC) - 0.5 * t(df$resids[idx]) %*% Cinv %*% df$resids[idx]
+        #update = tryCatch({
+        #  Cinv = chol2inv(chol(C))
+        #  0.5*log(detC) + 0.5 * t(df$resids[idx]) %*% Cinv %*% df$resids[idx]
+        #}, error = function(e){
+        #  #print("HERE")
+        #  return(10000)
+        #})
+        #logLik = logLik - update
       }else{
         logLik = logLik - 10000
       }
@@ -81,19 +83,19 @@ computeSigma = function(df, distMats){
   return(d)
 }
 
-getDistance = function(latLon1, latLon2){
+getDistance = function(lat1, lon1, lat2, lon2){
   degreesToRadian = pi/180.0
-  phi1 = (90 - latLon1$lat) * degreesToRadian
-  phi2 = (90 - latLon2$lat) * degreesToRadian
-  theta1 = latLon1$lon*degreesToRadian
-  theta2 = latLon2$lon*degreesToRadian
+  phi1 = (90 - lat1) * degreesToRadian
+  phi2 = (90 - lat2) * degreesToRadian
+  theta1 = lon1*degreesToRadian
+  theta2 = lon2*degreesToRadian
   cosValue = sin(phi1) * sin(phi2) * cos(theta1 - theta2) + cos(phi1)*cos(phi2)
   arc = acos(cosValue)
   dist = 6373*arc
   return(dist)
 }
 
-computeDistanceMat = function(df, latLonData){
+computeDistanceMat = function(df){
   eqids = unique(df$EQID)
   distMats = list()
   for(eqid in eqids){
@@ -104,12 +106,12 @@ computeDistanceMat = function(df, latLonData){
         if(i == j){
           distMat[i,j] = 0
         }else{
-          idxI = which(latLonData$seq == df$SeqNo[idx[i]])
-          idxJ = which(latLonData$seq == df$SeqNo[idx[j]])
-          distMat[i,j] = getDistance(latLonData[idxI,], latLonData[idxJ,])
+          idxI = idx[i]
+          idxJ = idx[j]
+          distMat[i,j] = getDistance(df$lat[idxI], df$lon[idxI],df$lat[idxJ], df$lon[idxJ])
           distMat[j,i] = distMat[i,j]
           if(is.nan(distMat[i,j])){
-            print(paste("NAN",latLonData[idxI,],latLonData[idxJ,]))
+            print(paste("NAN",df[idxI,],df[idxJ,]))
           }
         }
       }
@@ -138,24 +140,21 @@ data = subset(cyResids, variable %in% compFor)
 
 print("Step 2: Preparing Distance Matrix")
 
-#latLonData = read.csv("./../data/NGAW2_latLon.csv")
-#distanceMat = dlply(data, "variable", computeDistanceMat, latLonData, .parallel = TRUE)
-#save(distanceMat, file = "distanceMat.Rdata")
-load("distanceMat.Rdata")
+distanceMat = dlply(data, "variable", computeDistanceMat, .parallel = TRUE)
+save(distanceMat, file = "distanceMat.Rdata")
+#load("distanceMat.Rdata")
 print("Step 3: Maximum Likelihood")
 
 # Compute the phi and taus
-sigmas = list()
-for(i in 1:100){
-  sigmas[[i]] = ddply(.data = data, .variables = c("variable"), .fun = computeSigma, distanceMat, .parallel = TRUE)
-}
+
+sigmas = ddply(.data = data, .variables = c("variable"), .fun = computeSigma, distanceMat, .parallel = TRUE)
 
 print(sigmas)
 # Add numeric periods to the dataframe
-#extractPeriod = function(per){
-#  per = sub("T","",per)
-#  return(as.numeric(sub("S","",per)))
-#}
-#sigmas$periods = sapply(sigmas$variable, extractPeriod)
+extractPeriod = function(per){
+  per = sub("T","",per)
+  return(as.numeric(sub("S","",per)))
+}
+sigmas$periods = sapply(sigmas$variable, extractPeriod)
 
-save(sigmas, file = "withCorr100.Rdata")
+save(sigmas, file = "withCorr.Rdata")

@@ -7,7 +7,6 @@ library(doMC)
 
 registerDoMC(cores = 6)
 load('./../computeResids/briansResid.Rdata')
-bobData = read.csv('./../data/tauPhiBob.csv')
 
 cyResids$M = cyResids$Mag
 
