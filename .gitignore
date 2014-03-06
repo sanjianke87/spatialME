@@ -1,5 +1,12 @@
 # large data file
 models/distanceMat.Rdata
+
+.DS_Store
+
+*.jpg
+*.jpeg
+*.pptx
+
 # History files
 .Rhistory
 
