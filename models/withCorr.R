@@ -5,7 +5,7 @@ library(stats4)
 library(plyr)
 library(doMC)
 
-registerDoMC(cores = 5)
+registerDoMC(cores = 6)
 load('./../computeResids/briansResid.Rdata')
 bobData = read.csv('./../data/tauPhiBob.csv')
 
