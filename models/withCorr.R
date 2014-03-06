@@ -34,26 +34,17 @@ negLogLik = function(t1, t2, s1, s2, range, df, distMat){
       phi = s1 + (s2 - s1)/2.25 * (min(max(M,5),7.25) - 5)
       N = length(idx)
       corrMat = exp(-3*distMat[[eqid]]/range)
-      #print(eqid)
-      C = corrMat*phi^2 + matrix(1, N, N) * tau^2 #+ matrix(runif(N*N, 1e-6, 5e-6),N,N)
+      
+      C = corrMat*phi^2 + matrix(1, N, N) * tau^2
       detC = det(C)
       if(detC > 0 & is.finite(detC)){
         Cinv = chol2inv(chol(C))
         logLik = logLik - 0.5*log(detC) - 0.5 * t(df$resids[idx]) %*% Cinv %*% df$resids[idx]
-        #update = tryCatch({
-        #  Cinv = chol2inv(chol(C))
-        #  0.5*log(detC) + 0.5 * t(df$resids[idx]) %*% Cinv %*% df$resids[idx]
-        #}, error = function(e){
-        #  #print("HERE")
-        #  return(10000)
-        #})
-        #logLik = logLik - update
       }else{
         logLik = logLik - 10000
       }
     }
   }
-  #print(paste(t1,t2,s1,s2,range,logLik))
   return(-1 * logLik)
 }
 
@@ -69,7 +60,7 @@ computeSigma = function(df, distMats){
   }
   idx = which(sigmas_old$periods == period)
   print(per)
-  print(names(distMats))
+  #print(names(distMats))
   distMat = distMats[[as.character(per)]]
   # starting values
   d = data.frame(t1 = sigmas_old$t1[idx], t2 = sigmas_old$t2[idx], s1 = sigmas_old$s1[idx], s2 = sigmas_old$s2[idx], range = startRange)
@@ -140,16 +131,14 @@ data = subset(cyResids, variable %in% compFor)
 
 print("Step 2: Preparing Distance Matrix")
 
-distanceMat = dlply(data, "variable", computeDistanceMat, .parallel = TRUE)
-save(distanceMat, file = "distanceMat.Rdata")
-#load("distanceMat.Rdata")
+#distanceMat = dlply(data, "variable", computeDistanceMat, .parallel = TRUE)
+#save(distanceMat, file = "distanceMat.Rdata")
+load("distanceMat.Rdata")
+
 print("Step 3: Maximum Likelihood")
-
 # Compute the phi and taus
+sigmas = ddply(.data = data, .variables = c("variable"), .fun = computeSigma, distanceMat)#, .parallel = TRUE)
 
-sigmas = ddply(.data = data, .variables = c("variable"), .fun = computeSigma, distanceMat, .parallel = TRUE)
-
-print(sigmas)
 # Add numeric periods to the dataframe
 extractPeriod = function(per){
   per = sub("T","",per)
