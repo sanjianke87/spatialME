@@ -1,0 +1,91 @@
+# Validate teh full model tau and phi
+rm(list = ls())
+
+library(stats4)
+library(plyr)
+library(doMC)
+
+registerDoMC(cores = 5)
+load('./../computeResids/briansResid.Rdata')
+bobData = read.csv('./../data/tauPhiBob.csv')
+
+cyResids$M = cyResids$Mag
+
+fullLogLik = function(df, tau, phi, range, distMat){
+  logLik = 0
+  eqids = unique(df$EQID)
+  
+  for(i in 1:length(eqids)){
+    eqid = eqids[i]
+    idx = which(df$EQID == eqid)
+    if(length(idx) > 4){
+      M = unique(df$M[idx])[1]
+      N = length(idx)
+      corrMat = exp(-3*distMat[[eqid]]/range)
+      
+      C = corrMat*phi^2 + matrix(1, N, N) * tau^2
+      detC = det(C)
+      if(detC > 0 & is.finite(detC)){
+        Cinv = chol2inv(chol(C))
+        logLik = logLik - 0.5*log(detC) - 0.5 * t(df$resids[idx]) %*% Cinv %*% df$resids[idx]
+      }else{
+        logLik = logLik - 10000
+      }
+    }
+  }
+  return(-1 * logLik)
+}
+
+computeSigma = function(df, distMats){
+  per = unique(df$variable)[1]
+  period = sub("T","",per)
+  period = as.numeric(sub("S","",period))
+  startRange = 1
+  if(period < 1){
+    startRange = 8.5 + 17.2 * period  
+  }else{
+    startRange = 22.0 + 3.7 * period
+  }
+  distMat = distMats[[as.character(per)]]
+  
+  # Add some randomness to the distMat to avoid making the matrix singular.
+  # Add random numbers between 0 and 0.2 km
+  #eqids = unique(df$EQID)
+  #for(i in 1:length(eqids)){
+  #  eqid = eqids[i]
+  #  idx = which(df$EQID == eqid)
+  #  N = length(idx)
+  #  distMat[[eqid]] = distMat[[eqid]] + matrix(runif(N*N, 0, 0.2),N,N)
+  #}
+  
+  # starting values
+  d = data.frame(tau = 0.4, phi = 0.6)
+  mlePhiTau = mle(fullLogLik, start = list(tau = d$tau, phi = d$phi), 
+                  fixed = list(df = df, range = startRange, distMat = distMat))
+  d$tau = abs(mlePhiTau@coef[[1]])
+  d$phi = abs(mlePhiTau@coef[[2]])
+  return(d)
+}
+
+# Remove the Tottori event from computation
+cyResids = subset(cyResids, EQID != 176)
+
+# Only use the selected periods
+compFor = c("T0.010S", "T0.200S", "T0.500S", "T1.000S", "T2.000S")
+
+data = subset(cyResids, variable %in% compFor)
+
+# Load the dist mat
+load("./../models/distanceMat.Rdata")
+
+# Compute the phi and taus
+sigmas = ddply(data, "variable", computeSigma, distanceMat, .parallel = TRUE)
+
+# Add numeric periods to the dataframe
+extractPeriod = function(per){
+  per = sub("T","",per)
+  return(as.numeric(sub("S","",per)))
+}
+sigmas$periods = sapply(sigmas$variable, extractPeriod)
+
+save(sigmas, file = "simpleCorr.Rdata")
