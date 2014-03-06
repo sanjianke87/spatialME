@@ -73,8 +73,8 @@ computeSigma = function(df, distMats){
   distMat = distMats[[as.character(per)]]
   # starting values
   d = data.frame(t1 = sigmas_old$t1[idx], t2 = sigmas_old$t2[idx], s1 = sigmas_old$s1[idx], s2 = sigmas_old$s2[idx], range = startRange)
-  mlePhiTau = mle(negLogLik, start = list(t1 = d$t1, t2 = d$t2, s1 = d$s1, s2 = d$s2), lower = c(0.05,0.05,0.05,0.05), upper = c(0.8,0.8,1.4,1.4),
-                  method = "L-BFGS-B",fixed = list(df = df, distMat = distMat, range = startRange))
+  mlePhiTau = mle(negLogLik, start = list(t1 = d$t1, t2 = d$t2, s1 = d$s1, s2 = d$s2),
+                  fixed = list(df = df, distMat = distMat, range = startRange))
   d$t1 = abs(mlePhiTau@coef[[1]])
   d$t2 = abs(mlePhiTau@coef[[2]])
   d$s1 = abs(mlePhiTau@coef[[3]])
