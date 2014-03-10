@@ -47,19 +47,9 @@ computeSigma = function(df, distMats){
   }
   distMat = distMats[[as.character(per)]]
   
-  # Add some randomness to the distMat to avoid making the matrix singular.
-  # Add random numbers between 0 and 0.2 km
-  #eqids = unique(df$EQID)
-  #for(i in 1:length(eqids)){
-  #  eqid = eqids[i]
-  #  idx = which(df$EQID == eqid)
-  #  N = length(idx)
-  #  distMat[[eqid]] = distMat[[eqid]] + matrix(runif(N*N, 0, 0.2),N,N)
-  #}
-  
   # starting values
-  d = data.frame(tau = 0.4, phi = 0.6)
-  mlePhiTau = mle(fullLogLik, start = list(tau = d$tau, phi = d$phi), 
+  d = data.frame(tau = 0.4, phiSS = 0.4, phiS2S = 0.4)
+  mlePhiTau = mle(fullLogLik, start = list(tau = d$tau, phiSS = d$phiSS, phiS2S = d$phiS2S), 
                   fixed = list(df = df, range = startRange, distMat = distMat))
   d$tau = abs(mlePhiTau@coef[[1]])
   d$phi = abs(mlePhiTau@coef[[2]])
