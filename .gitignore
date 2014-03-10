@@ -6,7 +6,8 @@ models/distanceMat.Rdata
 *.jpg
 *.jpeg
 *.pptx
-
+*.csv
+*.xlsx
 # History files
 .Rhistory
 

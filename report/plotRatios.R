@@ -51,22 +51,37 @@ makePlot = function(df){
   tau_without_hetero = sapply(mags, heteroSigma, df$t1[idxWithout], df$t2[idxWithout])
   phi_without_hetero = sapply(mags, heteroSigma, df$s1[idxWithout], df$s2[idxWithout])
   
-  dphi = data.frame(M = mags, phi = c(phi_with_homo, phi_without_homo, phi_with_hetero, phi_without_hetero),
-                    corr = c(rep("withCorr",N), rep("withoutCorr",N), rep("withCorr",N), rep("withoutCorr",N)),
-                    model = c(rep("homo", 2*N), rep("hetero", 2*N)))
-  dtau = data.frame(M = mags, tau = c(tau_with_homo, tau_without_homo, tau_with_hetero, tau_without_hetero),
-                    corr = c(rep("withCorr",N), rep("withoutCorr",N), rep("withCorr",N), rep("withoutCorr",N)),
-                    model = c(rep("homo", 2*N), rep("hetero", 2*N)))
+  tau_homo = tau_with_homo/tau_without_homo
+  phi_homo = phi_with_homo/phi_without_homo
+  sig_homo = sqrt(tau_with_homo^2 + phi_with_homo^2)/sqrt(tau_without_homo^2 + phi_without_homo^2)
   
-  fnamePhi = paste("./rawPlots/phi_", per, ".jpg", sep = "")
-  p = ggplot(dphi, aes(x = M, y = phi, color = corr, linetype = model))
-  p = p + geom_line() + theme_bw(base_size = 28) + ylab(expression(phi)) + scale_y_continuous(lim = c(0.4,1))
+  tau_hetero = tau_with_hetero/tau_without_hetero
+  phi_hetero = phi_with_hetero/phi_without_hetero
+  sig_hetero = sqrt(tau_with_hetero^2 + phi_with_hetero^2)/sqrt(tau_without_hetero^2 + phi_without_hetero^2)
+  
+  dphi = data.frame(M = mags, phi = c(phi_homo, phi_hetero),
+                    model = c(rep("homoSk", N), rep("heteroSk", N)))
+  
+  dtau = data.frame(M = mags, tau = c(tau_homo, tau_hetero),
+                    model = c(rep("homoSk", N), rep("heteroSk", N)))
+  
+  dsig = data.frame(M = mags, sig = c(sig_homo, sig_hetero),
+                    model = c(rep("homoSk", N), rep("heteroSk", N)))
+  
+  fnamePhi = paste("./ratioPhi/phi_", per, ".jpg", sep = "")
+  p = ggplot(dphi, aes(x = M, y = phi, linetype = model))
+  p = p + geom_line() + theme_bw(base_size = 28) + ylab(expression(phi)) + scale_y_continuous(lim = c(0.5,1.5))
   ggsave(plot = p, file = fnamePhi)
   
-  fnameTau = paste("./rawPlots/tau_", per, ".jpg", sep = "")
-  p = ggplot(dtau, aes(x = M, y = tau, color = corr, linetype = model))
-  p = p + geom_line() + theme_bw(base_size = 28) + ylab(expression(tau))+ scale_y_continuous(lim = c(0.1,0.6))
+  fnameTau = paste("./ratioTau/tau_", per, ".jpg", sep = "")
+  p = ggplot(dtau, aes(x = M, y = tau, linetype = model))
+  p = p + geom_line() + theme_bw(base_size = 28) + ylab(expression(tau))+ scale_y_continuous(lim = c(0.5,1.5))
   ggsave(plot = p, file = fnameTau)
+  
+  fnameSig = paste("./ratioSig/sig_", per, ".jpg", sep = "")
+  p = ggplot(dsig, aes(x = M, y = sig, linetype = model))
+  p = p + geom_line() + theme_bw(base_size = 28) + ylab(expression(sigma))+ scale_y_continuous(lim = c(0.5,1.5))
+  ggsave(plot = p, file = fnameSig)
 }
 
 d_ply(data, "variable", makePlot)
